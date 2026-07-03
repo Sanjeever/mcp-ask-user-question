@@ -4,26 +4,27 @@
   "description": "Protocol-first MCP server exposing an AskUserQuestion-compatible tool.",
   "type": "module",
   "bin": {
-    "mcp-ask-user-question": "./dist/index.js"
+    "mcp-ask-user-question": "dist/index.js"
   },
   "files": [
-    "dist",
+    "dist/index.js",
+    "dist/index.d.ts",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsup src/index.ts --format esm --platform node --target node20 --dts --minify --clean --external @modelcontextprotocol/sdk --external zod",
     "prepublishOnly": "pnpm build",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "exports": {
     ".": {
-      "types": "./dist/server.d.ts",
-      "import": "./dist/server.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     }
   },
-  "types": "./dist/server.d.ts",
+  "types": "./dist/index.d.ts",
   "keywords": [
     "mcp",
     "model-context-protocol",
@@ -54,6 +55,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
+    "tsup": "^8.5.1",
     "typescript": "^5.9.0",
     "vitest": "^4.0.0"
   },
