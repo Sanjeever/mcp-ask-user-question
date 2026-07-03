@@ -1,0 +1,61 @@
+{
+  "name": "mcp-ask-user-question",
+  "version": "1.0.0",
+  "description": "Protocol-first MCP server exposing an AskUserQuestion-compatible tool.",
+  "type": "module",
+  "bin": {
+    "mcp-ask-user-question": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepublishOnly": "pnpm build",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js"
+    }
+  },
+  "types": "./dist/server.d.ts",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "codex",
+    "ask-user-question",
+    "AskUserQuestion",
+    "elicitation"
+  ],
+  "author": "Sanjeever <forgetfulcode@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sanjeever/mcp-ask-user-question.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Sanjeever/mcp-ask-user-question/issues"
+  },
+  "homepage": "https://github.com/Sanjeever/mcp-ask-user-question#readme",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^4.0.0"
+  },
+  "packageManager": "pnpm@11.5.2"
+}
