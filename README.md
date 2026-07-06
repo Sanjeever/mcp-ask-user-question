@@ -70,7 +70,7 @@ codex --sandbox danger-full-access -c 'approval_policy={granular={sandbox_approv
 | `auto` | stable | Uses MCP form elicitation when the client advertises support. |
 | `elicitation` | stable | Requires MCP form elicitation. |
 | `terminal` | experimental | Reads from the attached TTY. It writes prompts outside stdout so MCP stdio is not corrupted. |
-| `desktop` | experimental | Opens a Windows desktop dialog. Other platforms should use `web`. |
+| `desktop` | experimental | Opens a native desktop dialog on Windows or macOS. Other platforms should use `web`. |
 | `web` | experimental | Starts a loopback-only browser form and opens it in the default browser. |
 
 For MCP elicitation, normal single-select and multi-select questions use one prompt. If the user selects `Other`, the server sends one follow-up prompt for the custom answer.
@@ -86,12 +86,14 @@ The terminal provider requires an attached TTY. It is mainly for local CLI testi
 
 Terminal prompts accept `c` to cancel and `d` to decline.
 
-To enable the desktop provider on Windows:
+To enable the desktop provider on Windows or macOS:
 
 ```toml
 [mcp_servers.ask-user-question.env]
 ASK_USER_PROVIDER = "desktop"
 ```
+
+On macOS, the desktop provider uses the system `osascript` command.
 
 To enable the browser-based provider:
 

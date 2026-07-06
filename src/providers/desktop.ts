@@ -9,16 +9,19 @@ import {
 
 export class DesktopProvider implements AskUserProvider {
   async ask(question: AskUserQuestion, index: number, total: number): Promise<SingleQuestionResult> {
-    if (process.platform !== "win32") {
-      throw new Error("Desktop provider currently supports Windows only. Use ASK_USER_PROVIDER=web on this platform.");
+    if (process.platform !== "win32" && process.platform !== "darwin") {
+      throw new Error("Desktop provider currently supports Windows and macOS only. Use ASK_USER_PROVIDER=web on this platform.");
     }
 
-    const result = await runWindowsDialog({
+    const input = {
       header: question.header,
       message: buildQuestionMessage(question, index, total),
       labels: optionLabels(question),
       multiSelect: question.multiSelect
-    });
+    };
+    const result = process.platform === "win32"
+      ? await runWindowsDialog(input)
+      : await runMacOSDialog(input);
 
     if (result.action === "accept") {
       return resultFromSelectedLabels(
@@ -33,14 +36,14 @@ export class DesktopProvider implements AskUserProvider {
   }
 }
 
-type WindowsDialogInput = {
+type DesktopDialogInput = {
   header: string;
   message: string;
   labels: string[];
   multiSelect: boolean;
 };
 
-type WindowsDialogResult =
+type DesktopDialogResult =
   | {
       action: "accept";
       selectedLabels: string[];
@@ -51,8 +54,17 @@ type WindowsDialogResult =
       action: "cancel" | "decline";
     };
 
-async function runWindowsDialog(input: WindowsDialogInput): Promise<WindowsDialogResult> {
+async function runWindowsDialog(input: DesktopDialogInput): Promise<DesktopDialogResult> {
   const output = await runPowerShell(WINDOWS_DIALOG_SCRIPT, input);
+  return parseDesktopDialogOutput(output, input);
+}
+
+async function runMacOSDialog(input: DesktopDialogInput): Promise<DesktopDialogResult> {
+  const output = await runProcess("osascript", ["-l", "JavaScript", "-e", MACOS_DIALOG_SCRIPT], input);
+  return parseDesktopDialogOutput(output, input);
+}
+
+function parseDesktopDialogOutput(output: string, input: DesktopDialogInput): DesktopDialogResult {
   const parsed = JSON.parse(output) as {
     action?: string;
     selectedLabels?: unknown;
@@ -84,11 +96,14 @@ async function runWindowsDialog(input: WindowsDialogInput): Promise<WindowsDialo
   };
 }
 
-function runPowerShell(script: string, input: WindowsDialogInput): Promise<string> {
+function runPowerShell(script: string, input: DesktopDialogInput): Promise<string> {
   const encodedScript = Buffer.from(script, "utf16le").toString("base64");
+  return runProcess("powershell.exe", ["-NoProfile", "-STA", "-ExecutionPolicy", "Bypass", "-EncodedCommand", encodedScript], input);
+}
 
+function runProcess(command: string, args: string[], input: DesktopDialogInput): Promise<string> {
   return new Promise((resolve, reject) => {
-    const child = spawn("powershell.exe", ["-NoProfile", "-STA", "-ExecutionPolicy", "Bypass", "-EncodedCommand", encodedScript], {
+    const child = spawn(command, args, {
       stdio: ["pipe", "pipe", "pipe"]
     });
     const stdout: Buffer[] = [];
@@ -112,6 +127,149 @@ function runPowerShell(script: string, input: WindowsDialogInput): Promise<strin
     child.stdin.end(JSON.stringify(input), "utf8");
   });
 }
+
+const MACOS_DIALOG_SCRIPT = String.raw`
+ObjC.import("Foundation");
+
+function readStdin() {
+  var data = $.NSFileHandle.fileHandleWithStandardInput.readDataToEndOfFile();
+  return ObjC.unwrap($.NSString.alloc.initWithDataEncoding(data, $.NSUTF8StringEncoding));
+}
+
+function chooseAction(app, data) {
+  try {
+    var result = app.displayDialog(data.message, {
+      withTitle: data.header,
+      buttons: ["Cancel", "Decline", "Choose"],
+      defaultButton: "Choose",
+      cancelButton: "Cancel"
+    });
+
+    if (result.buttonReturned === "Decline") {
+      return "decline";
+    }
+
+    return "choose";
+  } catch (error) {
+    if (error.errorNumber === -128) {
+      return "cancel";
+    }
+
+    throw error;
+  }
+}
+
+function chooseLabels(app, data) {
+  try {
+    var selection = app.chooseFromList(data.labels, {
+      withPrompt: data.multiSelect ? "Select one or more options." : "Select one option.",
+      multipleSelectionsAllowed: data.multiSelect,
+      emptySelectionAllowed: false,
+      okButtonName: "Answer",
+      cancelButtonName: "Cancel"
+    });
+
+    if (selection === false) {
+      return false;
+    }
+
+    return selection.map(function(label) {
+      return String(label);
+    });
+  } catch (error) {
+    if (error.errorNumber === -128) {
+      return false;
+    }
+
+    throw error;
+  }
+}
+
+function askOther(app) {
+  while (true) {
+    try {
+      var result = app.displayDialog("Provide a custom answer for Other.", {
+        withTitle: "Other",
+        defaultAnswer: "",
+        buttons: ["Cancel", "OK"],
+        defaultButton: "OK",
+        cancelButton: "Cancel"
+      });
+      var value = String(result.textReturned).trim();
+
+      if (value.length > 0) {
+        return value;
+      }
+
+      app.displayDialog("Other was selected, but no custom answer was provided.", {
+        withTitle: "Ask User Question",
+        buttons: ["OK"],
+        defaultButton: "OK"
+      });
+    } catch (error) {
+      if (error.errorNumber === -128) {
+        return false;
+      }
+
+      throw error;
+    }
+  }
+}
+
+function askNotes(app) {
+  try {
+    var result = app.displayDialog("Optional notes.", {
+      withTitle: "Notes",
+      defaultAnswer: "",
+      buttons: ["Skip", "OK"],
+      defaultButton: "OK"
+    });
+
+    if (result.buttonReturned === "OK") {
+      return String(result.textReturned);
+    }
+  } catch (error) {
+    if (error.errorNumber !== -128) {
+      throw error;
+    }
+  }
+
+  return "";
+}
+
+function main() {
+  var data = JSON.parse(readStdin());
+  var app = Application.currentApplication();
+  app.includeStandardAdditions = true;
+
+  var action = chooseAction(app, data);
+  if (action === "cancel" || action === "decline") {
+    return { action: action };
+  }
+
+  var selectedLabels = chooseLabels(app, data);
+  if (selectedLabels === false) {
+    return { action: "cancel" };
+  }
+
+  var other = "";
+  if (selectedLabels.indexOf("Other") !== -1) {
+    other = askOther(app);
+    if (other === false) {
+      return { action: "cancel" };
+    }
+  }
+
+  return {
+    action: "accept",
+    selectedLabels: selectedLabels,
+    other: other,
+    notes: askNotes(app)
+  };
+}
+
+JSON.stringify(main());
+`;
 
 const WINDOWS_DIALOG_SCRIPT = String.raw`
 $ErrorActionPreference = "Stop"
