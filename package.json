@@ -1,6 +1,6 @@
 {
   "name": "mcp-ask-user-question",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Protocol-first MCP server exposing an AskUserQuestion-compatible tool.",
   "type": "module",
   "bin": {

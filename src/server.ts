@@ -6,7 +6,7 @@ import { askUserQuestionInputSchema, formatZodError } from "./schema.js";
 import { createProvider, getProviderName } from "./providers/index.js";
 import type { AskUserQuestionInput, AskUserQuestionResult } from "./types.js";
 
-const version = "1.0.1";
+const version = "1.1.0";
 
 export function createAskUserQuestionServer(): McpServer {
   const server = new McpServer(
