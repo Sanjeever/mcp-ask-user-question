@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "mcp-ask-user-question": {
+      "command": "node",
+      "args": [
+        "./dist/index.js"
+      ],
+      "env": {
+        "ASK_USER_PROVIDER": "web"
+      }
+    }
+  }
+}

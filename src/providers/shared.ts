@@ -1,4 +1,9 @@
-import type { AskUserQuestion, AskUserQuestionOption, QuestionAnnotation } from "../types.js";
+import type {
+  AskUserQuestion,
+  AskUserQuestionOption,
+  QuestionAnnotation,
+  SingleQuestionResult
+} from "../types.js";
 
 export const otherLabel = "Other";
 
@@ -61,4 +66,34 @@ export function requireOtherText(value: unknown): string {
 
 export function optionalNotes(value: unknown): string | undefined {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
+}
+
+export function resultFromSelectedLabels(
+  question: AskUserQuestion,
+  selectedLabels: string[],
+  customAnswer?: string,
+  notes?: string
+): SingleQuestionResult {
+  const normalizedCustomAnswer = selectedLabels.includes(otherLabel)
+    ? requireOtherText(customAnswer)
+    : undefined;
+
+  if (question.multiSelect) {
+    return {
+      action: "accept",
+      answer: selectedLabels.map((label) => (label === otherLabel ? normalizedCustomAnswer as string : label)),
+      annotation: annotationForMultiple(question, selectedLabels, notes)
+    };
+  }
+
+  const selectedLabel = selectedLabels[0];
+  if (!selectedLabel) {
+    throw new Error("Select at least one option.");
+  }
+
+  return {
+    action: "accept",
+    answer: selectedLabel === otherLabel ? normalizedCustomAnswer as string : selectedLabel,
+    annotation: annotationForSingle(question, selectedLabel, notes)
+  };
 }

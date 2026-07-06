@@ -1,7 +1,9 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { AskUserProvider, ProviderName } from "../types.js";
+import { DesktopProvider } from "./desktop.js";
 import { ElicitationProvider } from "./elicitation.js";
 import { TerminalProvider } from "./terminal.js";
+import { WebProvider } from "./web.js";
 
 export function getProviderName(): ProviderName {
   const raw = process.env.ASK_USER_PROVIDER ?? "auto";
@@ -24,5 +26,9 @@ export function createProvider(providerName: ProviderName, mcpServer: McpServer)
     return new TerminalProvider();
   }
 
-  throw new Error(`ASK_USER_PROVIDER=${providerName} is reserved for a future release and is not implemented in v1.`);
+  if (providerName === "desktop") {
+    return new DesktopProvider();
+  }
+
+  return new WebProvider();
 }

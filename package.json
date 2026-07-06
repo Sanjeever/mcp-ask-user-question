@@ -14,6 +14,7 @@
   ],
   "scripts": {
     "build": "tsup src/index.ts --format esm --platform node --target node20 --dts --minify --clean --external @modelcontextprotocol/sdk --external zod",
+    "inspect": "pnpm build && npx -y @modelcontextprotocol/inspector --config ./mcp.json --server mcp-ask-user-question",
     "prepublishOnly": "pnpm build",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
