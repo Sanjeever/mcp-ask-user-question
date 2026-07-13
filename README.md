@@ -1,5 +1,12 @@
 # mcp-ask-user-question
 
+> [!IMPORTANT]
+> This project is archived and no longer maintained. Codex now has experimental support for the `request_user_input` tool outside Plan mode. Enable the native feature instead:
+>
+> ```bash
+> codex features enable default_mode_request_user_input
+> ```
+
 A portable MCP server that exposes an `AskUserQuestion`-compatible tool.
 
 It uses MCP elicitation first, so clients that support elicitation can present questions through their native approval/input UI. Optional fallback providers are explicit and never enabled automatically.
@@ -14,7 +21,15 @@ npx -y mcp-ask-user-question
 
 ## Codex
 
-Add the server:
+Codex users should use the built-in experimental `request_user_input` tool instead of this MCP server:
+
+```bash
+codex features enable default_mode_request_user_input
+```
+
+This enables `request_user_input` outside Plan mode. The following MCP setup is retained for historical reference only.
+
+Add the legacy server:
 
 ```bash
 codex mcp add ask-user-question -- npx -y mcp-ask-user-question
